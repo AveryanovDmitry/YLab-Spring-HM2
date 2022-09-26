@@ -8,6 +8,7 @@ import com.edu.ulab.app.service.impl.BookServiceImpl;
 import com.edu.ulab.app.service.impl.BookServiceImplTemplate;
 import com.edu.ulab.app.service.impl.UserServiceImpl;
 import com.edu.ulab.app.service.impl.UserServiceImplTemplate;
+import com.edu.ulab.app.validation.ValidationService;
 import com.edu.ulab.app.web.request.UserBookRequest;
 import com.edu.ulab.app.web.response.UserBookResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -25,18 +26,24 @@ public class UserDataFacade {
     private final UserMapper userMapper;
     private final BookMapper bookMapper;
 
+    private final ValidationService validator;
+
     public UserDataFacade(UserServiceImplTemplate userService,
                           BookServiceImplTemplate bookService,
                           UserMapper userMapper,
-                          BookMapper bookMapper) {
+                          BookMapper bookMapper,
+                          ValidationService validator) {
         this.userService = userService;
         this.bookService = bookService;
         this.userMapper = userMapper;
         this.bookMapper = bookMapper;
+        this.validator = validator;
     }
 
     public UserBookResponse createUserWithBooks(UserBookRequest userBookRequest) {
         log.info("Got user book create request: {}", userBookRequest);
+        validator.validateCreateUserRequest(userBookRequest.getUserRequest());
+
         UserDto userDto = userMapper.userRequestToUserDto(userBookRequest.getUserRequest());
         log.info("Mapped user request: {}", userDto);
 
@@ -64,6 +71,9 @@ public class UserDataFacade {
     @Transactional
     public UserBookResponse updateUserWithBooks(UserBookRequest userBookRequest) {
         log.info("Got user book update request: {}", userBookRequest);
+        validator.validateUpdateUserRequest(userBookRequest);
+        log.info("Update userBookRequest is valid: {}", userBookRequest);
+
         UserDto userDto = userMapper.userRequestToUserDto(userBookRequest.getUserRequest());
         log.info("Mapped user request: {}", userDto);
         UserDto updatedUser = userService.updateUser(userDto);
@@ -79,6 +89,8 @@ public class UserDataFacade {
                 .stream()
                 .filter(Objects::nonNull)
                 .map(bookMapper::bookRequestToBookDto)
+                .peek(bookDto -> validator.validateId(bookDto.getId()))
+                .peek(mappedBookDto -> log.info("validated id book: {}", mappedBookDto.getId()))
                 .map(bookService::updateBook)
                 .peek(book -> log.info("Update book: {}", book))
                 .map(BookDto::getId)
@@ -93,6 +105,8 @@ public class UserDataFacade {
 
     public UserBookResponse getUserWithBooks(Long userId) {
         log.info("Got user book get request by user id: {}", userId);
+        validator.validateId(userId);
+        log.info("userId in get request is valid: {}", userId);
         UserDto user = userService.getUserById(userId);
         log.info("Got a user: {}", user);
 
@@ -112,6 +126,8 @@ public class UserDataFacade {
 
     @Transactional
     public void deleteUserWithBooks(Long userId) {
+        validator.validateId(userId);
+        log.info("userId in delete request is valid: {}", userId);
         log.info("Delete request by userId: " + userId);
         userService.deleteUserById(userId);
         log.info("Delete user by id: " + userId);
