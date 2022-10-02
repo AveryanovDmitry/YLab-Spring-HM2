@@ -1,6 +1,8 @@
 package com.edu.ulab.app.web.handler;
 
+import com.edu.ulab.app.exception.BadRequestException;
 import com.edu.ulab.app.exception.NotFoundException;
+import com.edu.ulab.app.exception.WrongIdException;
 import com.edu.ulab.app.web.response.BaseWebResponse;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -25,5 +27,17 @@ public class ControllerExceptionHandler {
         final String message = exception.getMessage();
         log.error(ExceptionHandlerUtils.buildErrorMessage(exception));
         return message;
+    }
+
+    @ExceptionHandler(WrongIdException.class)
+    public ResponseEntity<BaseWebResponse> handleWrongIdException(@NonNull final WrongIdException exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new BaseWebResponse(createErrorMessage(exception)));
+    }
+
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<BaseWebResponse> handleBadRequestException(@NonNull final BadRequestException exception) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new BaseWebResponse(createErrorMessage(exception)));
     }
 }
